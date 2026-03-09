@@ -292,7 +292,7 @@ export default function DashboardPage() {
           listening history, and personalized insights.
         </p>
         <a
-          href="/api/auth/spotify-connect"
+          href="/api/spotify/connect"
           className="inline-flex items-center gap-3 bg-spotify-green hover:bg-spotify-green-light text-black font-semibold px-8 py-3.5 rounded-full text-sm transition-all hover:shadow-lg hover:shadow-spotify-green/20"
         >
           <svg className="w-5 h-5 fill-black" viewBox="0 0 24 24">
