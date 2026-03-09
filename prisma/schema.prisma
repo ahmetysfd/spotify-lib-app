@@ -1,0 +1,27 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  username       String   @unique
+  email          String?  @unique
+  hashedPassword String
+  displayName    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Spotify connection
+  spotifyAccessToken  String?
+  spotifyRefreshToken String?
+  spotifyTokenExpiry  DateTime?
+  spotifyId           String?   @unique
+  spotifyDisplayName  String?
+  spotifyImage        String?
+  spotifyProduct      String?
+}
