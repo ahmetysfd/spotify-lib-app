@@ -206,35 +206,54 @@ export default function DashboardPage() {
       setProfile(profileData);
       setSpotifyConnected(true);
 
-      // Fetch all data in parallel
-      const fetches = await Promise.all([
-        ...TIME_RANGES.flatMap((r) => [
-          fetch(`/api/spotify/top-artists?time_range=${r.key}&limit=50`).then((res) =>
-            res.ok ? res.json() : { items: [] }
-          ),
-          fetch(`/api/spotify/top-tracks?time_range=${r.key}&limit=50`).then((res) =>
-            res.ok ? res.json() : { items: [] }
-          ),
-        ]),
-        fetch("/api/spotify/recently-played?limit=50").then((res) =>
-          res.ok ? res.json() : { items: [] }
-        ),
+      // Helper to fetch with fallback
+      const safeFetch = async (url: string) => {
+        const res = await fetch(url);
+        return res.ok ? res.json() : { items: [] };
+      };
+
+      // Small delay between batches to avoid Spotify 502s
+      const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+      // Batch 1: medium_term (default view) + recently played
+      const [artistsMed, tracksMed, recentData] = await Promise.all([
+        safeFetch("/api/spotify/top-artists?time_range=medium_term&limit=50"),
+        safeFetch("/api/spotify/top-tracks?time_range=medium_term&limit=50"),
+        safeFetch("/api/spotify/recently-played?limit=50"),
       ]);
 
-      const a: Record<string, SpotifyArtist[]> = {};
-      const t: Record<string, SpotifyTrack[]> = {};
+      // Set initial data immediately so user sees something fast
+      const a: Record<string, SpotifyArtist[]> = { medium_term: artistsMed?.items || [] };
+      const t: Record<string, SpotifyTrack[]> = { medium_term: tracksMed?.items || [] };
+      setArtists({ ...a });
+      setTracks({ ...t });
+      setRecent(recentData?.items || []);
+      setLoading(false);
 
-      TIME_RANGES.forEach((r, i) => {
-        a[r.key] = fetches[i * 2]?.items || [];
-        t[r.key] = fetches[i * 2 + 1]?.items || [];
-      });
+      // Batch 2: short_term (after a brief pause)
+      await delay(500);
+      const [artistsShort, tracksShort] = await Promise.all([
+        safeFetch("/api/spotify/top-artists?time_range=short_term&limit=50"),
+        safeFetch("/api/spotify/top-tracks?time_range=short_term&limit=50"),
+      ]);
+      a.short_term = artistsShort?.items || [];
+      t.short_term = tracksShort?.items || [];
+      setArtists({ ...a });
+      setTracks({ ...t });
 
-      setArtists(a);
-      setTracks(t);
-      setRecent(fetches[fetches.length - 1]?.items || []);
+      // Batch 3: long_term (after another pause)
+      await delay(500);
+      const [artistsLong, tracksLong] = await Promise.all([
+        safeFetch("/api/spotify/top-artists?time_range=long_term&limit=50"),
+        safeFetch("/api/spotify/top-tracks?time_range=long_term&limit=50"),
+      ]);
+      a.long_term = artistsLong?.items || [];
+      t.long_term = tracksLong?.items || [];
+      setArtists({ ...a });
+      setTracks({ ...t });
+
     } catch (e: any) {
       setError(e.message || "Failed to load data");
-    } finally {
       setLoading(false);
     }
   }, []);

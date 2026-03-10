@@ -21,6 +21,7 @@ export async function GET(req: Request) {
     if (error.message === "NO_SPOTIFY_CONNECTION") {
       return NextResponse.json({ error: "Spotify not connected" }, { status: 403 });
     }
+    console.error("Top tracks error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
