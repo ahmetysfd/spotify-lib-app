@@ -158,18 +158,18 @@ const css = `
   .tr-dur{font-size:12px;color:#555;white-space:nowrap}
 
   /* ── Artists ──────────────────────── */
-  .ca{display:flex;flex-direction:column}
-  .ca-hdr{padding:16px 18px 12px}
+  .ca{display:flex;flex-direction:column;max-height:calc(100vh - 80px);overflow:hidden}
+  .ca-hdr{padding:10px 12px 6px}
   .ca-hdr .t{font-size:16px;font-weight:700}
-  .ca-scroll{overflow-y:auto;max-height:calc(100vh - 110px);padding:0 14px 14px}
-  .ca-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .ca-scroll{padding:0 8px 8px;flex:1;display:grid;align-content:start;overflow:hidden}
+  .ca-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
   .ac{text-decoration:none;color:inherit;transition:transform .2s}
   .ac:hover{transform:translateY(-2px)}
-  .ac-img{position:relative;width:100%;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#282828;margin-bottom:7px}
+  .ac-img{position:relative;width:100%;aspect-ratio:1;border-radius:8px;overflow:hidden;background:#282828;margin-bottom:2px}
   .ac-img img{width:100%;height:100%;object-fit:cover}
-  .ac-rank{position:absolute;top:7px;left:7px;background:#1DB954;color:#000;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;line-height:1.3}
-  .ac-name{font-size:13px;font-weight:600}
-  .ac-genre{font-size:11px;color:#555;margin-top:1px}
+  .ac-rank{position:absolute;top:5px;left:5px;background:#1DB954;color:#000;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;line-height:1.3}
+  .ac-name{font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ac-genre{font-size:8px;color:#555;margin-top:0;margin-bottom:2px}
   .ac-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:rgba(255,255,255,.3);background:linear-gradient(135deg,#282828,#1a1a1a)}
 
   /* ── Connect ──────────────────────── */
