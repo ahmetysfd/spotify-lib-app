@@ -162,10 +162,10 @@ const css = `
   .ca-hdr{padding:10px 12px 6px}
   .ca-hdr .t{font-size:16px;font-weight:700}
   .ca-scroll{padding:0 8px 8px;flex:1;display:grid;align-content:start;overflow:hidden}
-  .ca-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+  .ca-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;max-width:50%;margin:0 auto}
   .ac{text-decoration:none;color:inherit;transition:transform .2s}
   .ac:hover{transform:translateY(-2px)}
-  .ac-img{position:relative;width:100%;aspect-ratio:1;border-radius:8px;overflow:hidden;background:#282828;margin-bottom:2px}
+  .ac-img{position:relative;width:100%;aspect-ratio:4/3;border-radius:6px;overflow:hidden;background:#282828;margin-bottom:1px}
   .ac-img img{width:100%;height:100%;object-fit:cover}
   .ac-rank{position:absolute;top:5px;left:5px;background:#1DB954;color:#000;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;line-height:1.3}
   .ac-name{font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -464,7 +464,7 @@ export default function DashboardPage() {
               <div className="ca-hdr"><div className="t">Top 10 Artists</div></div>
               <div className="ca-scroll">
                 <div className="ca-grid">
-                  {currentArtists.slice(0, 10).map((ar, i) => (
+                  {currentArtists.slice(0, 12).map((ar, i) => (
                     <a key={ar.id} href={ar.external_urls?.spotify || "#"} target="_blank" rel="noopener noreferrer" className="ac">
                       <div className="ac-img">
                         {ar.images?.[0]?.url ? <img src={ar.images[0].url} alt={ar.name} /> : <div className="ac-ph">{ar.name.charAt(0)}</div>}
