@@ -148,21 +148,21 @@ const css = `
   .ct-hdr .t{font-size:16px;font-weight:700}
   .ct-hdr .s{font-size:11px;color:#555}
   .ct-scroll{overflow-y:auto;max-height:calc(100vh - 110px);padding:0 4px 10px}
-  .tr{display:grid;grid-template-columns:26px 38px 1fr auto;align-items:center;gap:10px;padding:6px 14px;border-radius:6px;text-decoration:none;color:inherit;transition:background .15s}
+  .ct-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:0 8px 10px}
+  .tr{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;text-decoration:none;color:inherit;transition:background .15s}
   .tr:hover{background:#222}
-  .tr-n{font-size:13px;color:#555;text-align:center}
-  .tr-art{width:38px;height:38px;border-radius:5px;overflow:hidden;background:#282828;flex-shrink:0}
+  .tr-n{font-size:11px;color:#555;min-width:16px;text-align:center}
+  .tr-art{width:56px;height:56px;border-radius:5px;overflow:hidden;background:#282828;flex-shrink:0}
   .tr-art img{width:100%;height:100%;object-fit:cover}
-  .tr-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .tr-artist{font-size:11px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .tr-dur{font-size:12px;color:#555;white-space:nowrap}
+  .tr-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tr-artist{font-size:10px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
   /* ── Artists ──────────────────────── */
-  .ca{display:flex;flex-direction:column;max-height:calc(100vh - 80px);overflow:hidden}
+  .ca{display:flex;flex-direction:column}
   .ca-hdr{padding:10px 12px 6px}
   .ca-hdr .t{font-size:16px;font-weight:700}
-  .ca-scroll{padding:0 8px 8px;flex:1;display:grid;align-content:start;overflow:hidden}
-  .ca-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;max-width:50%;margin:0 auto}
+  .ca-scroll{overflow-y:auto;max-height:calc(100vh - 110px);padding:0 8px 8px}
+  .ca-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
   .ac{text-decoration:none;color:inherit;transition:transform .2s}
   .ac:hover{transform:translateY(-2px)}
   .ac-img{position:relative;width:100%;aspect-ratio:4/3;border-radius:6px;overflow:hidden;background:#282828;margin-bottom:1px}
@@ -443,28 +443,29 @@ export default function DashboardPage() {
                 <div className="s">Scroll for more</div>
               </div>
               <div className="ct-scroll">
-                {currentTracks.length > 0 ? currentTracks.map((tr, i) => (
-                  <a key={tr.id} href={tr.external_urls?.spotify || "#"} target="_blank" rel="noopener noreferrer" className="tr">
-                    <span className="tr-n">{i + 1}</span>
-                    <div className="tr-art">
-                      {tr.album?.images?.[0]?.url ? <img src={tr.album.images[0].url} alt="" /> : <div style={{ width: "100%", height: "100%", background: "#333" }} />}
-                    </div>
-                    <div>
-                      <div className="tr-name">{tr.name}</div>
-                      <div className="tr-artist">{tr.artists?.map(a => a.name).join(", ")}</div>
-                    </div>
-                    <span className="tr-dur">{formatDuration(tr.duration_ms || 0)}</span>
-                  </a>
-                )) : <div style={{ padding: 24, color: "#444", fontSize: 13, textAlign: "center" }}>No track data for this period</div>}
+                <div className="ct-grid">
+                  {currentTracks.length > 0 ? currentTracks.map((tr, i) => (
+                    <a key={tr.id} href={tr.external_urls?.spotify || "#"} target="_blank" rel="noopener noreferrer" className="tr">
+                      <span className="tr-n">{i + 1}</span>
+                      <div className="tr-art">
+                        {tr.album?.images?.[0]?.url ? <img src={tr.album.images[0].url} alt="" /> : <div style={{ width: "100%", height: "100%", background: "#333" }} />}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="tr-name">{tr.name}</div>
+                        <div className="tr-artist">{tr.artists?.map(a => a.name).join(", ")}</div>
+                      </div>
+                    </a>
+                  )) : <div style={{ padding: 24, color: "#444", fontSize: 13, textAlign: "center" }}>No track data for this period</div>}
+                </div>
               </div>
             </div>
 
             {/* ═══ RIGHT — Top 10 Artists ═══ */}
-            <div className="c ca">
-              <div className="ca-hdr"><div className="t">Top 10 Artists</div></div>
+              <div className="c ca">
+              <div className="ca-hdr"><div className="t">Top Artists</div></div>
               <div className="ca-scroll">
                 <div className="ca-grid">
-                  {currentArtists.slice(0, 12).map((ar, i) => (
+                  {currentArtists.slice(0, 15).map((ar, i) => (
                     <a key={ar.id} href={ar.external_urls?.spotify || "#"} target="_blank" rel="noopener noreferrer" className="ac">
                       <div className="ac-img">
                         {ar.images?.[0]?.url ? <img src={ar.images[0].url} alt={ar.name} /> : <div className="ac-ph">{ar.name.charAt(0)}</div>}
