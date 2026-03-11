@@ -148,14 +148,14 @@ const css = `
   .ct-hdr .t{font-size:16px;font-weight:700}
   .ct-hdr .s{font-size:11px;color:#555}
   .ct-scroll{overflow-y:auto;max-height:calc(100vh - 110px);padding:0 4px 10px}
-  .ct-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:0 8px 10px}
-  .tr{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;text-decoration:none;color:inherit;transition:background .15s}
+  .ct-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px 2px;padding:0 4px 10px}
+  .tr{display:flex;align-items:center;gap:4px;padding:3px 2px;border-radius:4px;text-decoration:none;color:inherit;transition:background .15s;overflow:hidden}
   .tr:hover{background:#222}
-  .tr-n{font-size:11px;color:#555;min-width:16px;text-align:center}
-  .tr-art{width:56px;height:56px;border-radius:5px;overflow:hidden;background:#282828;flex-shrink:0}
+  .tr-n{font-size:9px;color:#555;min-width:12px;text-align:center}
+  .tr-art{width:68px;height:68px;border-radius:4px;overflow:hidden;background:#282828;flex-shrink:0}
   .tr-art img{width:100%;height:100%;object-fit:cover}
-  .tr-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .tr-artist{font-size:10px;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tr-name{font-size:10px;font-weight:500}
+  .tr-artist{font-size:8px;color:#555}
 
   /* ── Artists ──────────────────────── */
   .ca{display:flex;flex-direction:column}
@@ -451,8 +451,12 @@ export default function DashboardPage() {
                         {tr.album?.images?.[0]?.url ? <img src={tr.album.images[0].url} alt="" /> : <div style={{ width: "100%", height: "100%", background: "#333" }} />}
                       </div>
                       <div style={{ minWidth: 0 }}>
-                        <div className="tr-name">{tr.name}</div>
-                        <div className="tr-artist">{tr.artists?.map(a => a.name).join(", ")}</div>
+                        <div className="tr-name">
+                          {tr.name.length > 10 ? tr.name.slice(0, 7) + "..." : tr.name}
+                        </div>
+                        <div className="tr-artist">
+                          {tr.artists?.map(a => a.name).join(", ").slice(0, 12)}
+                        </div>
                       </div>
                     </a>
                   )) : <div style={{ padding: 24, color: "#444", fontSize: 13, textAlign: "center" }}>No track data for this period</div>}
