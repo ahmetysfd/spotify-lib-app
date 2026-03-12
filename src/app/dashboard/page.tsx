@@ -370,23 +370,65 @@ export default function DashboardPage() {
             {/* ═══ LEFT ═══ */}
             <div className="left-col" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
-              {/* #1 Track */}
-              <div className="c c1">
-                <div className="c1-lbl"><span style={{ fontSize: 15 }}>🏆</span> #1 Track</div>
-                {topTrack ? (
-                  <>
-                    <div className="c1-img">
-                      {topImg ? <img src={topImg} alt={topTrack.name} /> : (
-                        <div className="c1-ph"><svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg></div>
-                      )}
-                      <div className="c1-ov">
-                        <div className="n">{topTrack.name}</div>
-                        <div className="a">{topTrack.artists?.map(x => x.name).join(", ")}</div>
-                      </div>
+              {/* Listening Time Graph */}
+              <div className="c" style={{ padding: "14px 16px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ fontSize: 14 }}>📊</span>
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>Listening Time</span>
+                  </div>
+                  <span style={{ fontSize: 10, color: "#555" }}>Last 7 days</span>
+                </div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6, margin: "8px 0 12px" }}>
+                  <span style={{ fontSize: 28, fontWeight: 700, color: "#1DB954", fontFamily: "var(--font-display,inherit)" }}>
+                    {Math.round(recent.reduce((s, r) => s + (r.track?.duration_ms || 0), 0) / 60000)}
+                  </span>
+                  <span style={{ fontSize: 11, color: "#555" }}>min this week</span>
+                </div>
+                {(() => {
+                  const days: Record<string, number> = {};
+                  const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+                  const now = new Date();
+                  for (let i = 6; i >= 0; i--) {
+                    const d = new Date(now);
+                    d.setDate(d.getDate() - i);
+                    const key = labels[d.getDay() === 0 ? 6 : d.getDay() - 1];
+                    days[key] = days[key] || 0;
+                  }
+                  recent.forEach((r) => {
+                    const d = new Date(r.played_at);
+                    const key = labels[d.getDay() === 0 ? 6 : d.getDay() - 1];
+                    if (key in days) days[key] += Math.round((r.track?.duration_ms || 0) / 60000);
+                  });
+                  const entries = Object.entries(days);
+                  const max = Math.max(...entries.map(([, v]) => v), 1);
+                  return (
+                    <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 100 }}>
+                      {entries.map(([day, mins]) => (
+                        <div key={day} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                          <span style={{ fontSize: 8, color: "#777" }}>{mins}m</span>
+                          <div style={{
+                            width: "100%",
+                            maxWidth: 28,
+                            height: `${Math.max((mins / max) * 70, 3)}px`,
+                            background: mins === max ? "#1DB954" : "#282828",
+                            borderRadius: 4,
+                            transition: "height 0.3s ease",
+                          }} />
+                          <span style={{ fontSize: 9, color: "#555" }}>{day}</span>
+                        </div>
+                      ))}
                     </div>
-                    <div className="c1-plays">{recent.length} plays recently</div>
-                  </>
-                ) : <div style={{ padding: "20px 16px", color: "#444", fontSize: 13 }}>No track data yet</div>}
+                  );
+                })()}
+                <div style={{ marginTop: 10, padding: "8px 0", borderTop: "1px solid #222", display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 10, color: "#444" }}>
+                    Est. monthly: ~{Math.round(recent.reduce((s, r) => s + (r.track?.duration_ms || 0), 0) / 60000 * 4)} min
+                  </span>
+                  <span style={{ fontSize: 10, color: "#444" }}>
+                    Est. yearly: ~{Math.round(recent.reduce((s, r) => s + (r.track?.duration_ms || 0), 0) / 60000 * 52 / 60)} hrs
+                  </span>
+                </div>
               </div>
 
               {/* Genre Breakdown */}
