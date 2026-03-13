@@ -113,7 +113,7 @@ const css = `
 
   /* ── Genre Donut ────────────────────── */
   .cg{margin-bottom:14px}
-  .cg-hdr{display:flex;align-items:center;gap:7px;padding:14px 16px 4px;font-size:14px;font-weight:600}
+  .cg-hdr{display:flex;align-items:center;gap:7px;padding:10px 16px 4px;font-size:14px;font-weight:600}
   .cg-sub{font-size:11px;color:#555;padding:0 16px 10px}
   .cg-wrap{display:flex;justify-content:center;padding:4px 12px 0}
   .cg-leg{display:flex;flex-wrap:wrap;gap:5px 10px;padding:12px 16px 14px}
@@ -262,6 +262,38 @@ export default function DashboardPage() {
   // ── Derived data ──
   const currentArtists = artists[timeRange] || [];
   const currentTracks = tracks[timeRange] || [];
+
+  // Aggregate albums from current tracks (for Top Album card)
+  const albumMap: Record<string, {
+    name: string;
+    image?: string;
+    count: number;
+    minutes: number;
+  }> = {};
+
+  currentTracks.forEach((track) => {
+    const albumName = track?.album?.name;
+    if (!albumName) return;
+
+    if (!albumMap[albumName]) {
+      albumMap[albumName] = {
+        name: albumName,
+        image: track.album?.images?.[0]?.url,
+        count: 0,
+        minutes: 0,
+      };
+    }
+
+    albumMap[albumName].count += 1;
+    albumMap[albumName].minutes += track.duration_ms || 0;
+  });
+
+  const albums = Object.values(albumMap).sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    return b.minutes - a.minutes;
+  });
+
+  const topAlbum = albums[0];
   const genreData = getGenreData(currentArtists);
   const timeLabel = TIME_RANGES.find((r) => r.key === timeRange)?.label || "";
   const displayName = profile?.display_name || session?.user?.name || "Music Lover";
@@ -408,34 +440,25 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Genre Breakdown */}
+              {/* Genre Breakdown / Most Listened Album */}
               <div className="c cg">
-                <div className="cg-hdr"><span>🎵</span> Genre Breakdown</div>
-                <div className="cg-sub">From your top artists · {timeLabel}</div>
-                {genreData.length > 0 ? (
-                  <>
-                    <div className="cg-wrap">
-                      <ResponsiveContainer width={200} height={200}>
-                        <PieChart>
-                          <Pie data={genreData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={52} paddingAngle={2} strokeWidth={0} cornerRadius={3}>
-                            {genreData.map((_, i) => (
-                              <Cell key={i} fill={GENRE_COLORS[i % GENRE_COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip content={<GenreTooltip />} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="cg-leg">
-                      {genreData.map((g, i) => (
-                        <div key={g.name} className="cg-dot">
-                          <span style={{ background: GENRE_COLORS[i % GENRE_COLORS.length] }} />
-                          {g.name}
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                ) : <div style={{ padding: "20px 16px", color: "#444", fontSize: 13 }}>Not enough data</div>}
+                <div className="cg-hdr"><span>💿</span> Most Listened Album</div>
+                {topAlbum ? (
+                  <div className="cg-wrap" style={{ justifyContent: "center", paddingBottom: 16 }}>
+                    <img
+                      src={topAlbum.image || ""}
+                      alt={topAlbum.name || "Top album"}
+                      style={{
+                        width: "200px",
+                        height: "200px",
+                        borderRadius: "10px",
+                        objectFit: "cover",
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ padding: "20px 16px", color: "#444", fontSize: 13 }}>Not enough data</div>
+                )}
               </div>
             </div>
 
