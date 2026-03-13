@@ -52,12 +52,6 @@ const GENRE_COLORS = [
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────
-const formatDuration = (ms: number) => {
-  const m = Math.floor(ms / 60000);
-  const s = Math.floor((ms % 60000) / 1000);
-  return `${m}:${s.toString().padStart(2, "0")}`;
-};
-
 const getGenreData = (artists: SpotifyArtist[]) => {
   const counts: Record<string, number> = {};
   artists.forEach((a) =>
@@ -72,19 +66,18 @@ const getGenreData = (artists: SpotifyArtist[]) => {
     }));
 };
 
-// ─── Inline Styles (Figma-matched dark Spotify palette) ──────────────
+// ─── Figma-Matched CSS (with ALL design tweaks) ─────────────────────
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'DM Sans',sans-serif;background:#121212;color:#fff;-webkit-font-smoothing:antialiased}
+  body{font-family:DM Sans,sans-serif;background:#121212;color:#fff;-webkit-font-smoothing:antialiased}
   ::-webkit-scrollbar{width:5px;height:5px}
   ::-webkit-scrollbar-track{background:transparent}
   ::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
   ::selection{background:rgba(29,185,84,.3)}
 
-  .page{min-height:100vh;padding:20px 24px;max-width:1400px;margin:0 auto}
+  .page{min-height:100vh;padding:20px 24px;max-width:1440px;margin:0 auto}
 
-  /* ── Header ───────────────────────── */
+  /* ── Header ─────────────────────────── */
   .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
   .hdr-left{display:flex;align-items:center;gap:10px}
   .hdr-icon{width:34px;height:34px;background:#1DB954;border-radius:10px;display:flex;align-items:center;justify-content:center}
@@ -92,38 +85,33 @@ const css = `
   .hdr-title{font-size:20px;font-weight:700;letter-spacing:-.3px}
   .hdr-sub{font-size:12px;color:#A0A0A0;margin-top:1px}
   .hdr-right{display:flex;align-items:center;gap:10px}
-  .hdr-av{width:28px;height:28px;border-radius:50%;overflow:hidden;background:rgba(29,185,84,.15);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#1DB954}
-  .hdr-av img{width:100%;height:100%;object-fit:cover}
+  .hdr-pl{display:flex;align-items:center;gap:10px;margin:0 auto;margin-right:auto;margin-left:0;padding-left:320px}
+  .hdr-pl-item{display:flex;align-items:center;gap:8px;background:#181818;border-radius:8px;padding:5px 14px 5px 5px;text-decoration:none;color:inherit;transition:all .2s;border:1px solid #222}
+  .hdr-pl-item:hover{border-color:#333;background:#1e1e1e}
+  .hdr-pl-art{width:38px;height:38px;border-radius:6px;overflow:hidden;background:#282828;flex-shrink:0}
+  .hdr-pl-art img{width:100%;height:100%;object-fit:cover}
+  .hdr-pl-name{font-size:11px;font-weight:500;max-width:80px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hdr-pl-cnt{font-size:9px;color:#555}
+  .hdr-pl-add{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;background:#181818;border:1px dashed #333;cursor:pointer;transition:all .2s}
+  .hdr-pl-add:hover{border-color:#555}
   .logout{background:none;border:1px solid #333;color:#777;padding:5px 12px;border-radius:6px;font-size:11px;font-family:inherit;cursor:pointer;transition:all .2s}
   .logout:hover{border-color:#555;color:#bbb}
 
-  /* ── Time Tabs ────────────────────── */
-  .ttabs{display:flex;align-items:center;gap:5px}
-  .cal{width:30px;height:30px;background:#282828;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-right:3px}
+  /* ── Time Tabs (Figma pill style) ────── */
+  .ttabs{display:flex;align-items:center;gap:0;background:#282828;border-radius:20px;padding:3px}
+  .cal{width:30px;height:30px;background:#282828;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-right:6px}
   .cal svg{width:14px;height:14px;stroke:#888;fill:none;stroke-width:2}
-  .ttab{background:transparent;border:1px solid #333;color:#A0A0A0;font-size:12px;font-weight:500;font-family:inherit;padding:6px 16px;border-radius:20px;cursor:pointer;transition:all .2s}
-  .ttab:hover{border-color:#555;color:#ccc}
-  .ttab.on{background:#1DB954;border-color:#1DB954;color:#000;font-weight:600}
+  .ttab{background:transparent;border:none;color:#A0A0A0;font-size:12px;font-weight:500;font-family:inherit;padding:7px 18px;border-radius:18px;cursor:pointer;transition:all .2s}
+  .ttab:hover{color:#ccc}
+  .ttab.on{background:#1DB954;color:#000;font-weight:600}
 
-  /* ── Grid ──────────────────────────── */
+  /* ── Main 3-column Grid ─────────────── */
   .grid{display:grid;grid-template-columns:300px 1fr 1fr;gap:14px;align-items:start}
 
-  /* ── Card base ────────────────────── */
+  /* ── Card base ──────────────────────── */
   .c{background:#181818;border-radius:12px;overflow:hidden}
 
-  /* ── #1 Track ─────────────────────── */
-  .c1{margin-bottom:14px}
-  .c1-lbl{display:flex;align-items:center;gap:6px;padding:14px 16px 10px;font-size:14px;font-weight:600}
-  .c1-img{position:relative;margin:0 14px;border-radius:10px;overflow:hidden;aspect-ratio:1}
-  .c1-img img{width:100%;height:100%;object-fit:cover;display:block}
-  .c1-ov{position:absolute;bottom:0;left:0;right:0;padding:14px 16px;background:linear-gradient(transparent,rgba(0,0,0,.85))}
-  .c1-ov .n{font-size:15px;font-weight:600}
-  .c1-ov .a{font-size:12px;color:#b3b3b3;margin-top:2px}
-  .c1-plays{padding:10px 16px 14px;font-size:12px;color:#555}
-  .c1-ph{aspect-ratio:1;margin:0 14px;border-radius:10px;background:linear-gradient(135deg,#1DB954 0%,#191414 100%);display:flex;align-items:center;justify-content:center}
-  .c1-ph svg{width:40px;height:40px;fill:rgba(255,255,255,.25)}
-
-  /* ── Genre ─────────────────────────── */
+  /* ── Genre Donut ────────────────────── */
   .cg{margin-bottom:14px}
   .cg-hdr{display:flex;align-items:center;gap:7px;padding:14px 16px 4px;font-size:14px;font-weight:600}
   .cg-sub{font-size:11px;color:#555;padding:0 16px 10px}
@@ -132,17 +120,7 @@ const css = `
   .cg-dot{display:flex;align-items:center;gap:4px;font-size:10px;color:#999}
   .cg-dot span{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block}
 
-  /* ── Playlists ────────────────────── */
-  .cp-hdr{display:flex;align-items:center;gap:7px;padding:14px 16px 8px;font-size:14px;font-weight:600}
-  .cp-list{padding:0 12px 12px}
-  .cp-row{display:flex;align-items:center;gap:10px;padding:5px 4px;border-radius:6px;text-decoration:none;color:inherit;transition:background .15s}
-  .cp-row:hover{background:#222}
-  .cp-art{width:38px;height:38px;border-radius:6px;overflow:hidden;flex-shrink:0;background:#282828}
-  .cp-art img{width:100%;height:100%;object-fit:cover}
-  .cp-name{font-size:12px;font-weight:500}
-  .cp-cnt{font-size:10px;color:#555}
-
-  /* ── Tracks ───────────────────────── */
+  /* ── Top 50 Tracks (center, 3-col grid) ── */
   .ct{display:flex;flex-direction:column}
   .ct-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px}
   .ct-hdr .t{font-size:16px;font-weight:700}
@@ -157,7 +135,7 @@ const css = `
   .tr-name{font-size:10px;font-weight:500}
   .tr-artist{font-size:8px;color:#555}
 
-  /* ── Artists ──────────────────────── */
+  /* ── Top Artists (right, 3-col with scroll) ── */
   .ca{display:flex;flex-direction:column}
   .ca-hdr{padding:10px 12px 6px}
   .ca-hdr .t{font-size:16px;font-weight:700}
@@ -172,34 +150,19 @@ const css = `
   .ac-genre{font-size:8px;color:#555;margin-top:0;margin-bottom:2px}
   .ac-ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:rgba(255,255,255,.3);background:linear-gradient(135deg,#282828,#1a1a1a)}
 
-  /* ── Connect ──────────────────────── */
-  .conn{display:flex;align-items:center;justify-content:center;height:70vh}
-  .conn-box{text-align:center;max-width:380px}
-  .conn-ic{width:68px;height:68px;background:#181818;border:1px solid #282828;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
-  .conn-ic svg{width:32px;height:32px;fill:#1DB954}
-  .conn-t{font-size:26px;font-weight:700;margin-bottom:8px}
-  .conn-s{font-size:13px;color:#888;margin-bottom:28px;line-height:1.5}
-  .conn-btn{display:inline-flex;align-items:center;gap:8px;background:#1DB954;color:#000;font-size:14px;font-weight:600;font-family:inherit;padding:11px 28px;border:none;border-radius:30px;cursor:pointer;transition:all .2s;text-decoration:none}
-  .conn-btn:hover{background:#1ed760;transform:translateY(-1px);box-shadow:0 8px 24px rgba(29,185,84,.25)}
-  .conn-btn svg{width:18px;height:18px;fill:#000}
-  .conn-note{font-size:11px;color:#444;margin-top:14px}
-
-  /* ── Loading ──────────────────────── */
+  /* ── Loading / Error / Toast ─────────── */
   .ld{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:14px}
   .sp{width:26px;height:26px;border:2px solid #282828;border-top-color:#1DB954;border-radius:50%;animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
   .ld-t{font-size:13px;color:#555}
-
-  /* ── Error / Toast ────────────────── */
   .err{background:rgba(232,17,91,.1);border:1px solid rgba(232,17,91,.2);color:#E8115B;padding:10px 16px;border-radius:10px;font-size:13px;margin-bottom:14px}
   .toast{position:fixed;top:16px;right:16px;z-index:100;background:#1DB954;color:#000;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(29,185,84,.3);animation:sd .3s ease}
   @keyframes sd{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 
-  /* ── Responsive ───────────────────── */
+  /* ── Responsive ─────────────────────── */
   @media(max-width:1100px){
     .grid{grid-template-columns:1fr 1fr}
-    .left-col{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
-    .left-col .c1,.left-col .cg,.left-col .c:last-child{margin-bottom:0}
+    .left-col{grid-column:1/-1;display:grid!important;grid-template-columns:1fr 1fr;gap:14px}
   }
   @media(max-width:768px){
     .page{padding:14px}
@@ -207,14 +170,15 @@ const css = `
     .left-col{display:flex!important;flex-direction:column;grid-column:1}
     .hdr{flex-direction:column;align-items:flex-start;gap:10px}
     .hdr-right{width:100%;justify-content:space-between;flex-wrap:wrap;gap:8px}
+    .hdr-pl{padding-left:0}
     .ct-scroll,.ca-scroll{max-height:500px}
   }
 `;
 
-// ─── SVG Components ──────────────────────────────────────────────────
-const SpotifyLogo = ({ size = 17 }: { size?: number }) => (
-  <svg viewBox="0 0 24 24" style={{ width: size, height: size }}>
-    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+// ─── SVG Icons ──────────────────────────────────────────────────────
+const MusicNote = ({ size = 17 }: { size?: number }) => (
+  <svg viewBox="0 0 24 24" fill="#1DB954" style={{ width: size, height: size }}>
+    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
   </svg>
 );
 
@@ -236,7 +200,6 @@ export default function DashboardPage() {
 
   const [timeRange, setTimeRange] = useState<string>("short_term");
   const [loading, setLoading] = useState(true);
-  const [spotifyConnected, setSpotifyConnected] = useState(false);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
 
@@ -247,11 +210,8 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
-    const sp = searchParams.get("spotify");
     const err = searchParams.get("error");
-    if (sp === "connected") { setToast("Spotify connected!"); setTimeout(() => setToast(""), 4000); }
-    if (err === "spotify_denied") setError("Spotify authorization was denied.");
-    if (err === "spotify_failed") setError("Failed to connect Spotify.");
+    if (err) setError("Something went wrong. Please try again.");
   }, [searchParams]);
 
   useEffect(() => { if (status === "unauthenticated") router.push("/login"); }, [status, router]);
@@ -260,22 +220,17 @@ export default function DashboardPage() {
     setLoading(true);
     setError("");
     try {
-      const profileRes = await fetch("/api/spotify/profile");
-      if (profileRes.status === 403) { setSpotifyConnected(false); setLoading(false); return; }
-      if (!profileRes.ok) throw new Error("Failed to load profile");
-      const profileData = await profileRes.json();
-      setProfile(profileData);
-      setSpotifyConnected(true);
-
       const sf = async (url: string) => { const r = await fetch(url); return r.ok ? r.json() : { items: [] }; };
       const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-      const [aS, tS, rec, pl] = await Promise.all([
+      const [profileData, aS, tS, rec, pl] = await Promise.all([
+        sf("/api/spotify/profile"),
         sf("/api/spotify/top-artists?time_range=short_term&limit=50"),
         sf("/api/spotify/top-tracks?time_range=short_term&limit=50"),
         sf("/api/spotify/recently-played?limit=50"),
         sf("/api/spotify/playlists?limit=10"),
       ]);
+      setProfile(profileData);
       const a: Record<string, SpotifyArtist[]> = { short_term: aS?.items || [] };
       const t: Record<string, SpotifyTrack[]> = { short_term: tS?.items || [] };
       setArtists({ ...a }); setTracks({ ...t }); setRecent(rec?.items || []); setPlaylists(pl?.items || []);
@@ -297,20 +252,23 @@ export default function DashboardPage() {
       a.long_term = aL?.items || []; t.long_term = tL?.items || [];
       setArtists({ ...a }); setTracks({ ...t });
     } catch (e: any) {
-      setError(e.message || "Failed to load data"); setLoading(false);
+      setError(e.message || "Failed to load data");
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => { if (status === "authenticated") fetchData(); }, [status, fetchData]);
 
+  // ── Derived data ──
   const currentArtists = artists[timeRange] || [];
   const currentTracks = tracks[timeRange] || [];
   const genreData = getGenreData(currentArtists);
-  const topTrack = currentTracks[0];
-  const topImg = topTrack?.album?.images?.[0]?.url;
   const timeLabel = TIME_RANGES.find((r) => r.key === timeRange)?.label || "";
+  const displayName = profile?.display_name || session?.user?.name || "Music Lover";
 
-  if (status === "loading") return (<><style>{css}</style><div className="ld"><div className="sp" /><div className="ld-t">Loading…</div></div></>);
+  if (status === "loading") {
+    return <><style>{css}</style><div className="page"><div className="ld"><div className="sp" /><div className="ld-t">Loading…</div></div></div></>;
+  }
 
   return (
     <>
@@ -318,29 +276,61 @@ export default function DashboardPage() {
       {toast && <div className="toast">{toast}</div>}
 
       <div className="page">
-        {/* ── Header ── */}
+        {/* ═══ HEADER ═══ */}
         <header className="hdr">
           <div className="hdr-left">
-            <div className="hdr-icon">
-              <svg viewBox="0 0 24 24" fill="#000" style={{ width: 17, height: 17 }}><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg>
-            </div>
+            <div className="hdr-icon"><MusicNote size={17} /></div>
             <div>
               <div className="hdr-title">Your Music Stats</div>
-              <div className="hdr-sub">Hey {profile?.display_name || session?.user?.name || "Music Lover"}, here&apos;s your listening activity</div>
+              <div className="hdr-sub">Hey {displayName}, here&apos;s your listening activity</div>
+            </div>
+          </div>
+          <div className="hdr-pl">
+        {playlists.slice(0, 1).map((pl) => (
+          <a
+            key={pl.id}
+            href={pl.external_urls?.spotify || "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hdr-pl-item"
+            style={{ padding: "5px 14px 5px 5px" }}
+          >
+            <div className="hdr-pl-art" style={{ width: 76, height: 76, borderRadius: 10 }}>
+              {pl.images?.[0]?.url ? (
+                <img src={pl.images[0].url} alt="" />
+              ) : (
+                <div style={{ width: "100%", height: "100%", background: "#282828" }} />
+              )}
+            </div>
+
+            <div>
+              <div className="hdr-pl-name" style={{ fontSize: 13, maxWidth: 120 }}>
+                {pl.name}
+              </div>
+              <div className="hdr-pl-cnt" style={{ fontSize: 10 }}>
+                {pl.tracks?.total || 0} tracks
+              </div>
+            </div>
+          </a>
+        ))}
+
+            <div
+              className="hdr-pl-add"
+              title="Add playlist"
+              style={{ cursor: "pointer", width: 32, height: 32 }}
+            >
+              <svg viewBox="0 0 24 24" fill="#888" style={{ width: 16, height: 16 }}>
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+              </svg>
             </div>
           </div>
           <div className="hdr-right">
-            {spotifyConnected && profile && (
-              <div className="hdr-av">
-                {profile.images?.[0]?.url ? <img src={profile.images[0].url} alt="" /> : (profile.display_name || "U").charAt(0)}
-              </div>
-            )}
+            <div className="cal">
+              <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+            </div>
             <div className="ttabs">
-              <div className="cal">
-                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
-              </div>
               {TIME_RANGES.map((r) => (
-                <button key={r.key} className={`ttab ${timeRange === r.key ? "on" : ""}`} onClick={() => setTimeRange(r.key)}>
+                <button key={r.key} className={`ttab${timeRange === r.key ? " on" : ""}`} onClick={() => setTimeRange(r.key)}>
                   {r.label}
                 </button>
               ))}
@@ -351,27 +341,18 @@ export default function DashboardPage() {
 
         {error && <div className="err">{error}</div>}
 
-        {!spotifyConnected && !loading && (
-          <div className="conn">
-            <div className="conn-box">
-              <div className="conn-ic"><SpotifyLogo size={32} /></div>
-              <div className="conn-t">Connect Spotify</div>
-              <div className="conn-s">Link your Spotify account to see your top artists, tracks, listening history, and personalized insights.</div>
-              <a href="/api/spotify/connect" className="conn-btn"><SpotifyLogo size={18} /> Connect with Spotify</a>
-              <div className="conn-note">We only read your listening data. We never modify your library.</div>
-            </div>
-          </div>
-        )}
-
+        {/* Loading */}
         {loading && <div className="ld"><div className="sp" /><div className="ld-t">Fetching your music data…</div></div>}
 
-        {spotifyConnected && !loading && (
+        {/* ═══ MAIN DASHBOARD GRID ═══ */}
+        {!loading && (
           <div className="grid">
-            {/* ═══ LEFT ═══ */}
-            <div className="left-col" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+            {/* ═══ LEFT COLUMN ═══ */}
+            <div className="left-col" style={{ display: "flex", flexDirection: "column" }}>
 
               {/* Listening Time Graph */}
-              <div className="c" style={{ padding: "14px 16px" }}>
+              <div className="c" style={{ padding: "14px 16px", marginBottom: 14 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ fontSize: 14 }}>📊</span>
@@ -380,7 +361,7 @@ export default function DashboardPage() {
                   <span style={{ fontSize: 10, color: "#555" }}>Last 7 days</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6, margin: "8px 0 12px" }}>
-                  <span style={{ fontSize: 28, fontWeight: 700, color: "#1DB954", fontFamily: "var(--font-display,inherit)" }}>
+                  <span style={{ fontSize: 28, fontWeight: 700, color: "#1DB954" }}>
                     {Math.round(recent.reduce((s, r) => s + (r.track?.duration_ms || 0), 0) / 60000)}
                   </span>
                   <span style={{ fontSize: 11, color: "#555" }}>min this week</span>
@@ -422,12 +403,8 @@ export default function DashboardPage() {
                   );
                 })()}
                 <div style={{ marginTop: 10, padding: "8px 0", borderTop: "1px solid #222", display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 10, color: "#444" }}>
-                    Est. monthly: ~{Math.round(recent.reduce((s, r) => s + (r.track?.duration_ms || 0), 0) / 60000 * 4)} min
-                  </span>
-                  <span style={{ fontSize: 10, color: "#444" }}>
-                    Est. yearly: ~{Math.round(recent.reduce((s, r) => s + (r.track?.duration_ms || 0), 0) / 60000 * 52 / 60)} hrs
-                  </span>
+                  <span style={{ fontSize: 10, color: "#444" }}>Est. monthly: ~{Math.round(recent.reduce((s, r) => s + (r.track?.duration_ms || 0), 0) / 60000 * 4)} min</span>
+                  <span style={{ fontSize: 10, color: "#444" }}>Est. yearly: ~{Math.round(recent.reduce((s, r) => s + (r.track?.duration_ms || 0), 0) / 60000 * 52 / 60)} hrs</span>
                 </div>
               </div>
 
@@ -438,10 +415,12 @@ export default function DashboardPage() {
                 {genreData.length > 0 ? (
                   <>
                     <div className="cg-wrap">
-                      <ResponsiveContainer width={190} height={190}>
+                      <ResponsiveContainer width={200} height={200}>
                         <PieChart>
-                          <Pie data={genreData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={85} innerRadius={48} paddingAngle={3} strokeWidth={0}>
-                            {genreData.map((_, i) => <Cell key={i} fill={GENRE_COLORS[i % GENRE_COLORS.length]} />)}
+                          <Pie data={genreData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={52} paddingAngle={2} strokeWidth={0} cornerRadius={3}>
+                            {genreData.map((_, i) => (
+                              <Cell key={i} fill={GENRE_COLORS[i % GENRE_COLORS.length]} />
+                            ))}
                           </Pie>
                           <Tooltip content={<GenreTooltip />} />
                         </PieChart>
@@ -449,36 +428,18 @@ export default function DashboardPage() {
                     </div>
                     <div className="cg-leg">
                       {genreData.map((g, i) => (
-                        <div key={g.name} className="cg-dot"><span style={{ background: GENRE_COLORS[i % GENRE_COLORS.length] }} />{g.name}</div>
+                        <div key={g.name} className="cg-dot">
+                          <span style={{ background: GENRE_COLORS[i % GENRE_COLORS.length] }} />
+                          {g.name}
+                        </div>
                       ))}
                     </div>
                   </>
                 ) : <div style={{ padding: "20px 16px", color: "#444", fontSize: 13 }}>Not enough data</div>}
               </div>
-
-              {/* Playlists */}
-              <div className="c">
-                <div className="cp-hdr">
-                  <svg viewBox="0 0 24 24" fill="#1DB954" style={{ width: 15, height: 15 }}><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55C7.79 13 6 14.79 6 17s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg>
-                  Your Playlists
-                </div>
-                <div className="cp-list">
-                  {playlists.length > 0 ? playlists.map((pl) => (
-                    <a key={pl.id} href={pl.external_urls?.spotify || "#"} target="_blank" rel="noopener noreferrer" className="cp-row">
-                      <div className="cp-art">
-                        {pl.images?.[0]?.url ? <img src={pl.images[0].url} alt="" /> : <div style={{ width: "100%", height: "100%", background: "#282828" }} />}
-                      </div>
-                      <div>
-                        <div className="cp-name">{pl.name}</div>
-                        <div className="cp-cnt">{pl.tracks?.total || 0} tracks</div>
-                      </div>
-                    </a>
-                  )) : <div style={{ padding: "8px 4px", color: "#444", fontSize: 12 }}>No playlists found</div>}
-                </div>
-              </div>
             </div>
 
-            {/* ═══ CENTER — Top 50 Tracks ═══ */}
+            {/* ═══ CENTER — Top 50 Tracks (3-col grid, 68px art, truncated names) ═══ */}
             <div className="c ct">
               <div className="ct-hdr">
                 <div className="t">Top 50 Tracks</div>
@@ -493,12 +454,8 @@ export default function DashboardPage() {
                         {tr.album?.images?.[0]?.url ? <img src={tr.album.images[0].url} alt="" /> : <div style={{ width: "100%", height: "100%", background: "#333" }} />}
                       </div>
                       <div style={{ minWidth: 0 }}>
-                        <div className="tr-name">
-                          {tr.name.length > 10 ? tr.name.slice(0, 7) + "..." : tr.name}
-                        </div>
-                        <div className="tr-artist">
-                          {tr.artists?.map(a => a.name).join(", ").slice(0, 12)}
-                        </div>
+                        <div className="tr-name">{tr.name.length > 10 ? tr.name.slice(0, 7) + "..." : tr.name}</div>
+                        <div className="tr-artist">{tr.artists?.map(a => a.name).join(", ").slice(0, 12)}</div>
                       </div>
                     </a>
                   )) : <div style={{ padding: 24, color: "#444", fontSize: 13, textAlign: "center" }}>No track data for this period</div>}
@@ -506,8 +463,8 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* ═══ RIGHT — Top 10 Artists ═══ */}
-              <div className="c ca">
+            {/* ═══ RIGHT — Top Artists (3-col, 15 artists, scrollable) ═══ */}
+            <div className="c ca">
               <div className="ca-hdr"><div className="t">Top Artists</div></div>
               <div className="ca-scroll">
                 <div className="ca-grid">
@@ -522,7 +479,9 @@ export default function DashboardPage() {
                     </a>
                   ))}
                 </div>
-                {currentArtists.length === 0 && <div style={{ padding: 24, color: "#444", fontSize: 13, textAlign: "center" }}>No artist data for this period</div>}
+                {currentArtists.length === 0 && (
+                  <div style={{ padding: 24, color: "#444", fontSize: 13, textAlign: "center" }}>No artist data for this period</div>
+                )}
               </div>
             </div>
           </div>

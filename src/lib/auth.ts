@@ -1,60 +1,36 @@
 import { NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcryptjs";
+import SpotifyProvider from "next-auth/providers/spotify";
+import { PrismaAdapter } from "@auth/prisma-adapter";
 import prisma from "./prisma";
 
+const SPOTIFY_SCOPES = [
+  "user-top-read",
+  "user-read-recently-played",
+  "user-library-read",
+  "user-read-private",
+  "user-read-email",
+  "playlist-read-private",
+  "playlist-read-collaborative",
+].join(" ");
+
 export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma) as any,
   providers: [
-    CredentialsProvider({
-      name: "credentials",
-      credentials: {
-        username: { label: "Username", type: "text" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) {
-          throw new Error("Username and password are required");
-        }
-
-        const user = await prisma.user.findUnique({
-          where: { username: credentials.username },
-        });
-
-        if (!user) {
-          throw new Error("No account found with that username");
-        }
-
-        const isValid = await bcrypt.compare(
-          credentials.password,
-          user.hashedPassword
-        );
-
-        if (!isValid) {
-          throw new Error("Invalid password");
-        }
-
-        return {
-          id: user.id,
-          name: user.displayName || user.username,
-          email: user.email,
-        };
+    SpotifyProvider({
+      clientId: process.env.SPOTIFY_CLIENT_ID!,
+      clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: SPOTIFY_SCOPES,
+          show_dialog: true,
+        },
       },
     }),
   ],
-  session: {
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-      }
-      return token;
-    },
-    async session({ session, token }) {
+    async session({ session, user }) {
       if (session.user) {
-        (session.user as any).id = token.id;
+        (session.user as any).id = user.id;
       }
       return session;
     },
