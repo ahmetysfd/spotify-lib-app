@@ -58,10 +58,11 @@ model DailyTrackStat {
   trackId    String
   trackName  String
   artistName String
+  artistId   String?
   albumName  String
-  plays      Int      @default(0)
-  minutes    Int      @default(0)
+  playedAt   DateTime
+  minutes    Int
   date       DateTime
 
-  @@unique([userId, trackId, date])
+  @@unique([userId, playedAt])
 }

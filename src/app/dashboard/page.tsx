@@ -7,22 +7,26 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
 // ─── Types ───────────────────────────────────────────────────────────
 interface SpotifyArtist {
-  id: string;
+  id?: string;
+  artistId?: string;
   name: string;
-  genres: string[];
-  images: { url: string }[];
-  popularity: number;
-  external_urls: { spotify: string };
+  genres?: string[];
+  images?: { url: string }[];
+  popularity?: number;
+  external_urls?: { spotify: string };
 }
 
 interface SpotifyTrack {
-  id: string;
-  name: string;
-  artists: { name: string }[];
-  album: { name: string; images: { url: string }[] };
-  popularity: number;
-  duration_ms: number;
-  external_urls: { spotify: string };
+  id?: string;
+  name?: string;
+  trackId?: string;
+  trackName?: string;
+  artistName?: string;
+  artists?: { name: string }[];
+  album?: { name: string; images?: { url: string }[] };
+  popularity?: number;
+  duration_ms?: number;
+  external_urls?: { spotify: string };
 }
 
 interface RecentItem {
@@ -210,6 +214,10 @@ export default function DashboardPage() {
   const [recent, setRecent] = useState<RecentItem[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [profile, setProfile] = useState<any>(null);
+  const [dailyStats, setDailyStats] = useState<{ tracks: any[]; artists: any[]; album: any } | null>(null);
+  const [weeklyStats, setWeeklyStats] = useState<{ tracks: any[]; artists: any[]; album: any } | null>(null);
+  const [trackImages, setTrackImages] = useState<Record<string, string>>({});
+  const [artistImages, setArtistImages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const err = searchParams.get("error");
@@ -223,6 +231,10 @@ export default function DashboardPage() {
     setError("");
     try {
       const sf = async (url: string) => { const r = await fetch(url); return r.ok ? r.json() : { items: [] }; };
+      const fetchStats = async (type: string) => {
+        const r = await fetch(`/api/stats/${type}`);
+        return r.ok ? r.json() : { tracks: [], artists: [], album: null };
+      };
       const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
       const [profileData, aS, tS, rec, pl] = await Promise.all([
@@ -232,18 +244,23 @@ export default function DashboardPage() {
         sf("/api/spotify/recently-played?limit=50"),
         sf("/api/spotify/playlists?limit=10"),
       ]);
+
+      if ((session?.user as { id?: string })?.id) {
+        await fetch("/api/spotify/save-daily-stats", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items: rec?.items || [] }),
+        });
+      }
+
+      const dailyStats = await fetchStats("daily");
+      const weeklyStats = await fetchStats("weekly");
+
       setProfile(profileData);
       const a: Record<string, SpotifyArtist[]> = { short_term: aS?.items || [] };
       const t: Record<string, SpotifyTrack[]> = { short_term: tS?.items || [] };
       setArtists({ ...a }); setTracks({ ...t }); setRecent(rec?.items || []); setPlaylists(pl?.items || []);
-
-      if ((session?.user as { id?: string })?.id) {
-        fetch("/api/spotify/save-daily-stats", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ items: rec?.items || [] }),
-        }).catch(() => {});
-      }
+      setDailyStats(dailyStats); setWeeklyStats(weeklyStats);
 
       setLoading(false);
 
@@ -270,9 +287,86 @@ export default function DashboardPage() {
 
   useEffect(() => { if (status === "authenticated") fetchData(); }, [status, fetchData]);
 
-  // ── Derived data ──
-  const currentArtists = artists[timeRange] || [];
-  const currentTracks = tracks[timeRange] || [];
+  // ── Derived data (computed before image loaders so they use the same list) ──
+  let currentArtists = artists[timeRange] || [];
+  let currentTracks = tracks[timeRange] || [];
+
+  if (timeRange === "today" && dailyStats) {
+    currentTracks = dailyStats.tracks || [];
+    currentArtists = dailyStats.artists || [];
+  }
+  if (timeRange === "weekly" && weeklyStats) {
+    currentTracks = weeklyStats.tracks || [];
+    currentArtists = weeklyStats.artists || [];
+  }
+
+  useEffect(() => {
+    const loadImages = async () => {
+      let sourceTracks: any[] = [];
+      if (timeRange === "today" && dailyStats) {
+        sourceTracks = dailyStats.tracks || [];
+      }
+      if (timeRange === "weekly" && weeklyStats) {
+        sourceTracks = weeklyStats.tracks || [];
+      }
+      if (sourceTracks.length === 0) return;
+
+      const ids = sourceTracks
+        .map((t: any) => t.trackId)
+        .filter(Boolean)
+        .slice(0, 50)
+        .join(",");
+      if (!ids) return;
+
+      const res = await fetch(`/api/spotify/tracks?ids=${ids}`);
+      const data = await res.json();
+      const map: Record<string, string> = {};
+      (data.tracks || []).forEach((t: any) => {
+        if (t?.id && t.album?.images?.[0]?.url) {
+          map[t.id] = t.album.images[0].url;
+        }
+      });
+      setTrackImages((prev) => ({ ...prev, ...map }));
+    };
+    loadImages();
+  }, [timeRange, dailyStats, weeklyStats]);
+
+  useEffect(() => {
+    const loadArtistImages = async () => {
+      let sourceArtists: any[] = [];
+      if (timeRange === "today" && dailyStats) {
+        sourceArtists = dailyStats.artists || [];
+      }
+      if (timeRange === "weekly" && weeklyStats) {
+        sourceArtists = weeklyStats.artists || [];
+      }
+      if (sourceArtists.length === 0) return;
+
+      const ids = sourceArtists
+        .map((a: any) => a.id || a.artistId)
+        .filter(Boolean)
+        .slice(0, 50)
+        .join(",");
+      if (!ids) return;
+
+      try {
+        const res = await fetch(`/api/spotify/artists?ids=${ids}`);
+        const data = await res.json();
+        const map: Record<string, string> = {};
+        (data.artists || []).forEach((a: any) => {
+          if (a?.id && a?.images?.[0]?.url) {
+            map[a.id] = a.images[0].url;
+          }
+        });
+        if (Object.keys(map).length > 0) {
+          setArtistImages((prev) => ({ ...prev, ...map }));
+        }
+      } catch (e) {
+        console.error("Artist image fetch failed", e);
+      }
+    };
+    loadArtistImages();
+  }, [timeRange, dailyStats, weeklyStats]);
 
   // Aggregate albums from current tracks (for Top Album card)
   const albumMap: Record<string, {
@@ -405,11 +499,24 @@ export default function DashboardPage() {
                 </div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6, margin: "8px 0 12px" }}>
                   <span style={{ fontSize: 28, fontWeight: 700, color: "#1DB954" }}>
-                    {Math.round(recent.reduce((s, r) => s + (r.track?.duration_ms || 0), 0) / 60000)}
+                    {Math.round(
+                      recent.reduce((s, r) => {
+                        if (!r.played_at) return s;
+                        const played = new Date(r.played_at);
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        if (played >= weekAgo) {
+                          return s + (r.track?.duration_ms || 0);
+                        }
+                        return s;
+                      }, 0) / 60000
+                    )}
                   </span>
                   <span style={{ fontSize: 11, color: "#555" }}>min this week</span>
                 </div>
                 {(() => {
+                  const weekAgo = new Date();
+                  weekAgo.setDate(weekAgo.getDate() - 7);
                   const days: Record<string, number> = {};
                   const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
                   const now = new Date();
@@ -420,8 +527,10 @@ export default function DashboardPage() {
                     days[key] = days[key] || 0;
                   }
                   recent.forEach((r) => {
-                    const d = new Date(r.played_at);
-                    const key = labels[d.getDay() === 0 ? 6 : d.getDay() - 1];
+                    if (!r.played_at) return;
+                    const played = new Date(r.played_at);
+                    if (played < weekAgo) return;
+                    const key = labels[played.getDay() === 0 ? 6 : played.getDay() - 1];
                     if (key in days) days[key] += Math.round((r.track?.duration_ms || 0) / 60000);
                   });
                   const entries = Object.entries(days);
@@ -446,8 +555,30 @@ export default function DashboardPage() {
                   );
                 })()}
                 <div style={{ marginTop: 10, padding: "8px 0", borderTop: "1px solid #222", display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 10, color: "#444" }}>Est. monthly: ~{Math.round(recent.reduce((s, r) => s + (r.track?.duration_ms || 0), 0) / 60000 * 4)} min</span>
-                  <span style={{ fontSize: 10, color: "#444" }}>Est. yearly: ~{Math.round(recent.reduce((s, r) => s + (r.track?.duration_ms || 0), 0) / 60000 * 52 / 60)} hrs</span>
+                  <span style={{ fontSize: 10, color: "#444" }}>
+                    Est. monthly: ~{Math.round(
+                      recent.reduce((s, r) => {
+                        if (!r.played_at) return s;
+                        const played = new Date(r.played_at);
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        if (played >= weekAgo) return s + (r.track?.duration_ms || 0);
+                        return s;
+                      }, 0) / 60000 * 4
+                    )} min
+                  </span>
+                  <span style={{ fontSize: 10, color: "#444" }}>
+                    Est. yearly: ~{Math.round(
+                      recent.reduce((s, r) => {
+                        if (!r.played_at) return s;
+                        const played = new Date(r.played_at);
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        if (played >= weekAgo) return s + (r.track?.duration_ms || 0);
+                        return s;
+                      }, 0) / 60000 * 52 / 60
+                    )} hrs
+                  </span>
                 </div>
               </div>
 
@@ -482,14 +613,26 @@ export default function DashboardPage() {
               <div className="ct-scroll">
                 <div className="ct-grid">
                   {currentTracks.length > 0 ? currentTracks.map((tr, i) => (
-                    <a key={tr.id} href={tr.external_urls?.spotify || "#"} target="_blank" rel="noopener noreferrer" className="tr">
+                    <a key={tr.id || tr.trackId || i} href={tr.external_urls?.spotify || "#"} target="_blank" rel="noopener noreferrer" className="tr">
                       <span className="tr-n">{i + 1}</span>
                       <div className="tr-art">
-                        {tr.album?.images?.[0]?.url ? <img src={tr.album.images[0].url} alt="" /> : <div style={{ width: "100%", height: "100%", background: "#333" }} />}
+                        {(tr.album?.images?.[0]?.url || trackImages[tr.trackId || ""]) ? (
+                          <img src={tr.album?.images?.[0]?.url || trackImages[tr.trackId || ""]} alt="" />
+                        ) : (
+                          <div style={{ width: "100%", height: "100%", background: "#333" }} />
+                        )}
                       </div>
                       <div style={{ minWidth: 0 }}>
-                        <div className="tr-name">{tr.name.length > 10 ? tr.name.slice(0, 7) + "..." : tr.name}</div>
-                        <div className="tr-artist">{tr.artists?.map(a => a.name).join(", ").slice(0, 12)}</div>
+                        <div className="tr-name">
+                          {(tr.name || tr.trackName || "").length > 10
+                            ? (tr.name || tr.trackName || "").slice(0, 7) + "..."
+                            : (tr.name || tr.trackName || "")}
+                        </div>
+                        <div className="tr-artist">
+                          {tr.artists
+                            ? tr.artists.map(a => a.name).join(", ").slice(0, 12)
+                            : (tr.artistName || "").slice(0, 12)}
+                        </div>
                       </div>
                     </a>
                   )) : <div style={{ padding: 24, color: "#444", fontSize: 13, textAlign: "center" }}>No track data for this period</div>}
@@ -503,13 +646,17 @@ export default function DashboardPage() {
               <div className="ca-scroll">
                 <div className="ca-grid">
                   {currentArtists.slice(0, 15).map((ar, i) => (
-                    <a key={ar.id} href={ar.external_urls?.spotify || "#"} target="_blank" rel="noopener noreferrer" className="ac">
+                    <a key={ar.id || ar.name || i} href={ar.external_urls?.spotify || (ar.id ? `https://open.spotify.com/artist/${ar.id}` : "#")} target="_blank" rel="noopener noreferrer" className="ac">
                       <div className="ac-img">
-                        {ar.images?.[0]?.url ? <img src={ar.images[0].url} alt={ar.name} /> : <div className="ac-ph">{ar.name.charAt(0)}</div>}
+                        {(ar.images?.[0]?.url || artistImages[ar.id ?? ""] || artistImages[ar.artistId ?? ""]) ? (
+                        <img src={ar.images?.[0]?.url || artistImages[ar.id ?? ""] || artistImages[ar.artistId ?? ""]} alt={ar.name} />
+                      ) : (
+                        <div className="ac-ph">{ar.name?.charAt(0) || "A"}</div>
+                      )}
                         <div className="ac-rank">#{i + 1}</div>
                       </div>
                       <div className="ac-name">{ar.name}</div>
-                      <div className="ac-genre">{(ar.genres?.[0] || "Artist").split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}</div>
+                      <div className="ac-genre">{((ar.genres?.[0] || "Artist") + "").split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}</div>
                     </a>
                   ))}
                 </div>

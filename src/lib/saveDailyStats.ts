@@ -1,64 +1,62 @@
 import { prisma } from "@/lib/prisma";
 
 export async function saveDailyStats(userId: string, plays: any[]) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const counts: Record<string, {
+  const rows: {
+    userId: string;
     trackId: string;
     trackName: string;
     artistName: string;
+    artistId: string | null;
     albumName: string;
-    plays: number;
+    playedAt: Date;
     minutes: number;
-  }> = {};
+    date: Date;
+  }[] = [];
 
-  plays.forEach((p) => {
+  for (const p of plays) {
     const track = p.track;
-    if (!track) return;
+    if (!track?.id || !p.played_at) continue;
 
-    const id = track.id;
+    const playedAt = new Date(p.played_at);
+    const date = new Date(playedAt);
+    date.setHours(0, 0, 0, 0);
 
-    if (!counts[id]) {
-      counts[id] = {
-        trackId: track.id,
-        trackName: track.name ?? "",
-        artistName: track.artists?.[0]?.name ?? "",
-        albumName: track.album?.name ?? "",
-        plays: 0,
-        minutes: 0,
-      };
-    }
+    rows.push({
+      userId,
+      trackId: track.id,
+      trackName: track.name ?? "",
+      artistName: track.artists?.[0]?.name ?? "",
+      artistId: track.artists?.[0]?.id ?? null,
+      albumName: track.album?.name ?? "",
+      playedAt,
+      minutes: Math.round((track.duration_ms ?? 0) / 60000),
+      date,
+    });
+  }
 
-    counts[id].plays += 1;
-    counts[id].minutes += Math.round((track.duration_ms ?? 0) / 60000);
+  if (rows.length === 0) return;
+
+  const timestamps = rows.map((r) => r.playedAt);
+
+  const existing = await prisma.dailyTrackStat.findMany({
+    where: {
+      userId,
+      playedAt: { in: timestamps },
+    },
+    select: { playedAt: true },
   });
 
-  for (const id in counts) {
-    const t = counts[id];
+  const existingSet = new Set(
+    existing.map((e) => new Date(e.playedAt).toISOString())
+  );
 
-    await prisma.dailyTrackStat.upsert({
-      where: {
-        userId_trackId_date: {
-          userId,
-          trackId: t.trackId,
-          date: today,
-        },
-      },
-      update: {
-        plays: { increment: t.plays },
-        minutes: { increment: t.minutes },
-      },
-      create: {
-        userId,
-        trackId: t.trackId,
-        trackName: t.trackName,
-        artistName: t.artistName,
-        albumName: t.albumName,
-        plays: t.plays,
-        minutes: t.minutes,
-        date: today,
-      },
+  const newRows = rows.filter(
+    (r) => !existingSet.has(new Date(r.playedAt).toISOString())
+  );
+
+  if (newRows.length > 0) {
+    await prisma.dailyTrackStat.createMany({
+      data: newRows,
     });
   }
 }
