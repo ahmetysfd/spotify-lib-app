@@ -51,3 +51,17 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+model DailyTrackStat {
+  id         String   @id @default(cuid())
+  userId     String
+  trackId    String
+  trackName  String
+  artistName String
+  albumName  String
+  plays      Int      @default(0)
+  minutes    Int      @default(0)
+  date       DateTime
+
+  @@unique([userId, trackId, date])
+}

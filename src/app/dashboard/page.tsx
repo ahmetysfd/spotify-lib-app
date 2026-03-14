@@ -40,6 +40,8 @@ interface Playlist {
 
 // ─── Constants ───────────────────────────────────────────────────────
 const TIME_RANGES = [
+  { key: "today", label: "Today" },
+  { key: "weekly", label: "Weekly" },
   { key: "short_term", label: "1 Month" },
   { key: "medium_term", label: "6 Months" },
   { key: "long_term", label: "All Time" },
@@ -234,6 +236,15 @@ export default function DashboardPage() {
       const a: Record<string, SpotifyArtist[]> = { short_term: aS?.items || [] };
       const t: Record<string, SpotifyTrack[]> = { short_term: tS?.items || [] };
       setArtists({ ...a }); setTracks({ ...t }); setRecent(rec?.items || []); setPlaylists(pl?.items || []);
+
+      if ((session?.user as { id?: string })?.id) {
+        fetch("/api/spotify/save-daily-stats", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ items: rec?.items || [] }),
+        }).catch(() => {});
+      }
+
       setLoading(false);
 
       await wait(500);
@@ -255,7 +266,7 @@ export default function DashboardPage() {
       setError(e.message || "Failed to load data");
       setLoading(false);
     }
-  }, []);
+  }, [(session?.user as { id?: string })?.id]);
 
   useEffect(() => { if (status === "authenticated") fetchData(); }, [status, fetchData]);
 
@@ -444,13 +455,13 @@ export default function DashboardPage() {
               <div className="c cg">
                 <div className="cg-hdr"><span>💿</span> Most Listened Album</div>
                 {topAlbum ? (
-                  <div className="cg-wrap" style={{ justifyContent: "center", paddingBottom: 16 }}>
+                  <div className="cg-wrap" style={{ justifyContent: "center", paddingBottom: 16, height: 240 }}>
                     <img
                       src={topAlbum.image || ""}
                       alt={topAlbum.name || "Top album"}
                       style={{
-                        width: "200px",
-                        height: "200px",
+                        width: "100%",
+                        height: "100%",
                         borderRadius: "10px",
                         objectFit: "cover",
                       }}
