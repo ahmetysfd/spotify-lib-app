@@ -22,7 +22,7 @@ export async function GET() {
 
   const trackMap: Record<string, { trackId: string; trackName: string; artistName: string; albumName: string; plays: number; minutes: number }> = {};
   const artistMap: Record<string, { name: string; id: string; plays: number }> = {};
-  const albumMap: Record<string, number> = {};
+  const albumMap: Record<string, { plays: number; minutes: number; trackId: string }> = {};
 
   stats.forEach((s) => {
     const key = s.trackId;
@@ -49,7 +49,12 @@ export async function GET() {
       artistMap[s.artistName].id = s.artistId;
     }
     artistMap[s.artistName].plays += 1;
-    albumMap[s.albumName] = (albumMap[s.albumName] || 0) + 1;
+
+    if (!albumMap[s.albumName]) {
+      albumMap[s.albumName] = { plays: 0, minutes: 0, trackId: s.trackId };
+    }
+    albumMap[s.albumName].plays += 1;
+    albumMap[s.albumName].minutes += s.minutes;
   });
 
   const tracks = Object.values(trackMap)
@@ -61,7 +66,7 @@ export async function GET() {
 
   const album =
     Object.entries(albumMap)
-      .map(([name, plays]) => ({ name, plays }))
+      .map(([name, data]) => ({ name, plays: data.plays, minutes: data.minutes, trackId: data.trackId }))
       .sort((a, b) => b.plays - a.plays)[0] ?? null;
 
   return Response.json({ tracks, artists, album });

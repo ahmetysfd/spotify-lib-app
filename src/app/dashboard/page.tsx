@@ -48,7 +48,7 @@ const TIME_RANGES = [
   { key: "weekly", label: "Weekly" },
   { key: "short_term", label: "1 Month" },
   { key: "medium_term", label: "6 Months" },
-  { key: "long_term", label: "All Time" },
+  { key: "long_term", label: "1 Year" },
 ] as const;
 
 const GENRE_COLORS = [
@@ -218,6 +218,7 @@ export default function DashboardPage() {
   const [weeklyStats, setWeeklyStats] = useState<{ tracks: any[]; artists: any[]; album: any } | null>(null);
   const [trackImages, setTrackImages] = useState<Record<string, string>>({});
   const [artistImages, setArtistImages] = useState<Record<string, string>>({});
+  const [topAlbumImage, setTopAlbumImage] = useState<string>("");
 
   useEffect(() => {
     const err = searchParams.get("error");
@@ -368,6 +369,27 @@ export default function DashboardPage() {
     loadArtistImages();
   }, [timeRange, dailyStats, weeklyStats]);
 
+  useEffect(() => {
+    const loadAlbumImage = async () => {
+      const album = timeRange === "today" ? dailyStats?.album : timeRange === "weekly" ? weeklyStats?.album : null;
+      const trackId = album?.trackId;
+      if (!trackId) {
+        setTopAlbumImage("");
+        return;
+      }
+      try {
+        const res = await fetch(`/api/spotify/tracks?ids=${trackId}`);
+        const data = await res.json();
+        const track = (data.tracks || [])[0];
+        const url = track?.album?.images?.[0]?.url ?? "";
+        setTopAlbumImage(url);
+      } catch {
+        setTopAlbumImage("");
+      }
+    };
+    loadAlbumImage();
+  }, [timeRange, dailyStats, weeklyStats]);
+
   // Aggregate albums from current tracks (for Top Album card)
   const albumMap: Record<string, {
     name: string;
@@ -399,9 +421,31 @@ export default function DashboardPage() {
   });
 
   const topAlbum = albums[0];
+  const statsAlbum = timeRange === "today" ? dailyStats?.album : timeRange === "weekly" ? weeklyStats?.album : null;
+  const mostListenedAlbum = statsAlbum
+    ? { name: statsAlbum.name, image: topAlbumImage, minutes: statsAlbum.minutes ?? 0 }
+    : topAlbum
+      ? { name: topAlbum.name, image: topAlbum.image, minutes: Math.round((topAlbum.minutes ?? 0) / 60000) }
+      : null;
+  const topTracksList = (timeRange === "today" ? dailyStats?.tracks : timeRange === "weekly" ? weeklyStats?.tracks : null)?.slice(0, 5) ?? [];
   const genreData = getGenreData(currentArtists);
   const timeLabel = TIME_RANGES.find((r) => r.key === timeRange)?.label || "";
   const displayName = profile?.display_name || session?.user?.name || "Music Lover";
+
+  // Listening time: use DB for Today/Weekly (correct counts), Spotify recent for other ranges
+  const listeningMinutesToday = (dailyStats?.tracks ?? []).reduce((s, t) => s + (t.minutes ?? 0), 0);
+  const listeningMinutesWeekly = (weeklyStats?.tracks ?? []).reduce((s, t) => s + (t.minutes ?? 0), 0);
+  const listeningMinutesFromRecent = recent.reduce((s, r) => {
+    if (!r.played_at) return s;
+    const played = new Date(r.played_at);
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    if (played >= weekAgo) return s + (r.track?.duration_ms || 0);
+    return s;
+  }, 0) / 60000;
+  const listeningTimeLabel = timeRange === "today" ? "Today" : timeRange === "weekly" ? "Last 7 days" : "Last 7 days";
+  const listeningTimeMinutes = timeRange === "today" ? listeningMinutesToday : timeRange === "weekly" ? listeningMinutesWeekly : listeningMinutesFromRecent;
+  const listeningTimeSuffix = timeRange === "today" ? "min today" : "min this week";
 
   if (status === "loading") {
     return <><style>{css}</style><div className="page"><div className="ld"><div className="sp" /><div className="ld-t">Loading…</div></div></div></>;
@@ -495,113 +539,141 @@ export default function DashboardPage() {
                     <span style={{ fontSize: 14 }}>📊</span>
                     <span style={{ fontSize: 14, fontWeight: 600 }}>Listening Time</span>
                   </div>
-                  <span style={{ fontSize: 10, color: "#555" }}>Last 7 days</span>
+                  <span style={{ fontSize: 10, color: "#555" }}>{listeningTimeLabel}</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "baseline", gap: 6, margin: "8px 0 12px" }}>
                   <span style={{ fontSize: 28, fontWeight: 700, color: "#1DB954" }}>
-                    {Math.round(
-                      recent.reduce((s, r) => {
-                        if (!r.played_at) return s;
-                        const played = new Date(r.played_at);
-                        const weekAgo = new Date();
-                        weekAgo.setDate(weekAgo.getDate() - 7);
-                        if (played >= weekAgo) {
-                          return s + (r.track?.duration_ms || 0);
-                        }
-                        return s;
-                      }, 0) / 60000
-                    )}
+                    {Math.round(listeningTimeMinutes)}
                   </span>
-                  <span style={{ fontSize: 11, color: "#555" }}>min this week</span>
+                  <span style={{ fontSize: 11, color: "#555" }}>{listeningTimeSuffix}</span>
                 </div>
-                {(() => {
-                  const weekAgo = new Date();
-                  weekAgo.setDate(weekAgo.getDate() - 7);
-                  const days: Record<string, number> = {};
-                  const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-                  const now = new Date();
-                  for (let i = 6; i >= 0; i--) {
-                    const d = new Date(now);
-                    d.setDate(d.getDate() - i);
-                    const key = labels[d.getDay() === 0 ? 6 : d.getDay() - 1];
-                    days[key] = days[key] || 0;
-                  }
-                  recent.forEach((r) => {
-                    if (!r.played_at) return;
-                    const played = new Date(r.played_at);
-                    if (played < weekAgo) return;
-                    const key = labels[played.getDay() === 0 ? 6 : played.getDay() - 1];
-                    if (key in days) days[key] += Math.round((r.track?.duration_ms || 0) / 60000);
-                  });
-                  const entries = Object.entries(days);
-                  const max = Math.max(...entries.map(([, v]) => v), 1);
-                  return (
-                    <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 100 }}>
-                      {entries.map(([day, mins]) => (
-                        <div key={day} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                          <span style={{ fontSize: 8, color: "#777" }}>{mins}m</span>
-                          <div style={{
-                            width: "100%",
-                            maxWidth: 28,
-                            height: `${Math.max((mins / max) * 70, 3)}px`,
-                            background: mins === max ? "#1DB954" : "#282828",
-                            borderRadius: 4,
-                            transition: "height 0.3s ease",
-                          }} />
-                          <span style={{ fontSize: 9, color: "#555" }}>{day}</span>
-                        </div>
-                      ))}
+                {timeRange === "today" ? (
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 100 }}>
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                      <span style={{ fontSize: 8, color: "#777" }}>{Math.round(listeningTimeMinutes)}m</span>
+                      <div style={{
+                        width: "100%",
+                        maxWidth: 28,
+                        height: `${Math.max(Math.min((listeningTimeMinutes / 120) * 70, 70), 3)}px`,
+                        background: "#1DB954",
+                        borderRadius: 4,
+                      }} />
+                      <span style={{ fontSize: 9, color: "#555" }}>Today</span>
                     </div>
-                  );
-                })()}
-                <div style={{ marginTop: 10, padding: "8px 0", borderTop: "1px solid #222", display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 10, color: "#444" }}>
-                    Est. monthly: ~{Math.round(
-                      recent.reduce((s, r) => {
-                        if (!r.played_at) return s;
-                        const played = new Date(r.played_at);
-                        const weekAgo = new Date();
-                        weekAgo.setDate(weekAgo.getDate() - 7);
-                        if (played >= weekAgo) return s + (r.track?.duration_ms || 0);
-                        return s;
-                      }, 0) / 60000 * 4
-                    )} min
-                  </span>
-                  <span style={{ fontSize: 10, color: "#444" }}>
-                    Est. yearly: ~{Math.round(
-                      recent.reduce((s, r) => {
-                        if (!r.played_at) return s;
-                        const played = new Date(r.played_at);
-                        const weekAgo = new Date();
-                        weekAgo.setDate(weekAgo.getDate() - 7);
-                        if (played >= weekAgo) return s + (r.track?.duration_ms || 0);
-                        return s;
-                      }, 0) / 60000 * 52 / 60
-                    )} hrs
-                  </span>
-                </div>
+                  </div>
+                ) : (
+                  (() => {
+                    const weekAgo = new Date();
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    const days: Record<string, number> = {};
+                    const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+                    const now = new Date();
+                    for (let i = 6; i >= 0; i--) {
+                      const d = new Date(now);
+                      d.setDate(d.getDate() - i);
+                      const key = labels[d.getDay() === 0 ? 6 : d.getDay() - 1];
+                      days[key] = days[key] || 0;
+                    }
+                    recent.forEach((r) => {
+                      if (!r.played_at) return;
+                      const played = new Date(r.played_at);
+                      if (played < weekAgo) return;
+                      const key = labels[played.getDay() === 0 ? 6 : played.getDay() - 1];
+                      if (key in days) days[key] += Math.round((r.track?.duration_ms || 0) / 60000);
+                    });
+                    const entries = Object.entries(days);
+                    const max = Math.max(...entries.map(([, v]) => v), 1);
+                    return (
+                      <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 100 }}>
+                        {entries.map(([day, mins]) => (
+                          <div key={day} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                            <span style={{ fontSize: 8, color: "#777" }}>{mins}m</span>
+                            <div style={{
+                              width: "100%",
+                              maxWidth: 28,
+                              height: `${Math.max((mins / max) * 70, 3)}px`,
+                              background: mins === max ? "#1DB954" : "#282828",
+                              borderRadius: 4,
+                              transition: "height 0.3s ease",
+                            }} />
+                            <span style={{ fontSize: 9, color: "#555" }}>{day}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()
+                )}
+                {timeRange !== "today" && (
+                  <div style={{ marginTop: 10, padding: "8px 0", borderTop: "1px solid #222", display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 10, color: "#444" }}>
+                      Est. monthly: ~{Math.round(listeningTimeMinutes * 4)} min
+                    </span>
+                    <span style={{ fontSize: 10, color: "#444" }}>
+                      Est. yearly: ~{Math.round(listeningTimeMinutes * 52 / 60)} hrs
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Genre Breakdown / Most Listened Album */}
               <div className="c cg">
                 <div className="cg-hdr"><span>💿</span> Most Listened Album</div>
-                {topAlbum ? (
-                  <div className="cg-wrap" style={{ justifyContent: "center", paddingBottom: 16, height: 240 }}>
-                    <img
-                      src={topAlbum.image || ""}
-                      alt={topAlbum.name || "Top album"}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        borderRadius: "10px",
-                        objectFit: "cover",
-                      }}
-                    />
+                {mostListenedAlbum ? (
+                  <div className="cg-wrap" style={{ justifyContent: "center", paddingBottom: 16, flexDirection: "column", gap: 0 }}>
+                    <div style={{ width: "100%", flex: 1, minHeight: 180, borderRadius: "10px", overflow: "hidden", background: "#282828" }}>
+                      {mostListenedAlbum.image ? (
+                        <img
+                          src={mostListenedAlbum.image}
+                          alt={mostListenedAlbum.name || "Top album"}
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                      ) : (
+                        <div style={{ width: "100%", height: "100%", minHeight: 180, display: "flex", alignItems: "center", justifyContent: "center", color: "#666", fontSize: 40 }}>💿</div>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "8px 4px 0", minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>{mostListenedAlbum.name}</div>
+                      {(timeRange === "today" || timeRange === "weekly") && (
+                        <div style={{ color: "#A0A0A0", fontSize: 11, flexShrink: 0 }}>{mostListenedAlbum.minutes} min listened</div>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div style={{ padding: "20px 16px", color: "#444", fontSize: 13 }}>Not enough data</div>
                 )}
               </div>
+
+              {/* Most listened tracks (Today / Weekly) */}
+              {topTracksList.length > 0 && (
+                <div style={{
+                  marginTop: 12,
+                  padding: "14px 14px",
+                  background: "#181818",
+                  borderRadius: "10px",
+                  border: "1px solid #282828",
+                  minHeight: 180,
+                }}>
+                  <div style={{ fontSize: 12, color: "#A0A0A0", marginBottom: 10, fontWeight: 500 }}>Most listened tracks</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {topTracksList.map((t: any, i: number) => (
+                      <div key={t.trackId || i} style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 6, overflow: "hidden", background: "#282828", flexShrink: 0 }}>
+                          {trackImages[t.trackId] ? (
+                            <img src={trackImages[t.trackId]} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          ) : (
+                            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#555", fontSize: 18 }}>♪</div>
+                          )}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.trackName || "Track"}</div>
+                          <div style={{ color: "#A0A0A0", fontSize: 11, marginTop: 1 }}>{t.artistName || ""}</div>
+                        </div>
+                        <div style={{ color: "#1DB954", fontSize: 13, flexShrink: 0, fontWeight: 600 }}>{t.plays ?? 0} {(t.plays ?? 0) === 1 ? "time" : "times"}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* ═══ CENTER — Top 50 Tracks (3-col grid, 68px art, truncated names) ═══ */}

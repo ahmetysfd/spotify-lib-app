@@ -198,6 +198,41 @@ Each page with artists/tracks has **time range tabs**: Last 4 Weeks, Last 6 Mont
 
 ---
 
+## Saving recently played every 2 hours (cron)
+
+Spotify only exposes the **last 50** recently played tracks. To avoid losing history when the app isn’t open, you can run a job every 2 hours that fetches recently played for all linked users and saves it to your database.
+
+**What’s in the project**
+
+- **When you open the dashboard:** Recently played is fetched and saved (existing behavior).
+- **No built-in scheduler:** There is no process that runs every 2 hours by itself. You need either a host that supports cron (e.g. Vercel Cron) or an external cron service.
+
+**How to run it every 2 hours**
+
+1. **Set a secret** (so only your cron can call the API):
+   - Generate one: `openssl rand -base64 32`
+   - Add to `.env.local` (and to your host’s env in production):
+     ```env
+     CRON_SECRET=your-generated-secret-here
+     ```
+
+2. **Call the API every 2 hours** with that secret:
+   - **URL:** `GET` or `POST` → `https://your-app-url.com/api/cron/collect-recently-played`
+   - **Auth:** Send either  
+     `Authorization: Bearer YOUR_CRON_SECRET`  
+     or  
+     `x-cron-secret: YOUR_CRON_SECRET`
+   - If `CRON_SECRET` is not set in the app, the route does not require auth (useful for local testing only).
+
+3. **Ways to trigger it every 2 hours:**
+   - **Vercel (Pro):** Add `vercel.json` with a cron (already in the repo: every 2 hours). Set `CRON_SECRET` in Vercel env. Note: Vercel Cron may not send the secret automatically; use an external cron that calls your URL with the header if needed.
+   - **External cron service:** Use [cron-job.org](https://cron-job.org), [EasyCron](https://www.easycron.com), or similar. Create a job that runs every 2 hours and calls the URL above with the `Authorization: Bearer YOUR_CRON_SECRET` header.
+   - **Your own server:** Add a system cron entry, e.g. `0 */2 * * * curl -H "Authorization: Bearer YOUR_CRON_SECRET" https://your-app.com/api/cron/collect-recently-played`
+
+The job finds all users with a linked Spotify account, fetches their last 50 recent plays, and saves any new ones into the database (duplicates are skipped).
+
+---
+
 ## Deploying to Production (Optional)
 
 To deploy on **Vercel**:

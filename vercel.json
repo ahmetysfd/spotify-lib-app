@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/collect-recently-played",
+      "schedule": "0 */2 * * *"
+    }
+  ]
+}

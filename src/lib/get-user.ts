@@ -115,3 +115,52 @@ export async function getSpotifyToken() {
   refreshLocks.set(userId, refreshPromise);
   return refreshPromise;
 }
+
+/**
+ * Get a valid Spotify access token for a user by userId (no session required).
+ * Used by cron jobs to fetch recently played for all users.
+ */
+export async function getSpotifyTokenForUserId(userId: string): Promise<string | null> {
+  const account = await prisma.account.findFirst({
+    where: { userId, provider: "spotify" },
+  });
+
+  if (!account?.refresh_token) {
+    return null;
+  }
+
+  const isExpired =
+    !account.expires_at ||
+    account.expires_at * 1000 < Date.now() + 5 * 60 * 1000;
+
+  if (!isExpired && account.access_token) {
+    return account.access_token;
+  }
+
+  const existingLock = refreshLocks.get(userId);
+  if (existingLock) {
+    return existingLock;
+  }
+
+  const refreshPromise = (async () => {
+    try {
+      const data = await refreshAccessToken(account.refresh_token!);
+      await prisma.account.update({
+        where: { id: account.id },
+        data: {
+          access_token: data.access_token,
+          expires_at: Math.floor(Date.now() / 1000 + data.expires_in),
+          ...(data.refresh_token ? { refresh_token: data.refresh_token } : {}),
+        },
+      });
+      return data.access_token;
+    } catch {
+      return null;
+    } finally {
+      refreshLocks.delete(userId);
+    }
+  })();
+
+  refreshLocks.set(userId, refreshPromise);
+  return refreshPromise;
+}
