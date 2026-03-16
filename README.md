@@ -1,5 +1,3 @@
-# Spotify Personal Music Library
-
 A full-stack personal music dashboard that connects to your Spotify account and displays your top artists, tracks, listening history, genre breakdowns, and visual insights.
 
 **Stack:** Next.js 14 · NextAuth.js · Prisma + PostgreSQL · Tailwind CSS · Recharts
