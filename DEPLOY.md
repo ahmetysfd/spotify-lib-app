@@ -133,10 +133,10 @@ If you get “Invalid redirect URI” from Spotify, double-check Step 5 (exact U
 
 ---
 
-## Optional: run “collect recently played” every 2 hours
+## Optional: run “collect recently played” once per day at midnight
 
 - In Vercel, set **`CRON_SECRET`** (e.g. `openssl rand -base64 32`).
-- Your repo has a cron route and `vercel.json` (every 2 hours). On **Vercel Pro** the cron may run automatically; otherwise use [cron-job.org](https://cron-job.org) or similar to call:
+- Your repo has a cron route and `vercel.json` (once per day at midnight). On **Vercel Pro** the cron may run automatically; otherwise use [cron-job.org](https://cron-job.org) or similar to call:
   `https://your-app.vercel.app/api/cron/collect-recently-played`
   with header: `Authorization: Bearer YOUR_CRON_SECRET`.
 

@@ -6,7 +6,7 @@ import { saveDailyStats } from "@/lib/saveDailyStats";
 
 /**
  * Cron job: fetch recently played from Spotify for all users with a linked
- * Spotify account and save to the database. Run every 2 hours so you don't
+ * Spotify account and save to the database. Run once per day at midnight so you don't
  * lose track even when the app isn't open (Spotify only exposes last 50 recent plays).
  *
  * Secured by CRON_SECRET: caller must send Authorization: Bearer <CRON_SECRET>
