@@ -2,7 +2,7 @@
 
 A full-stack personal music dashboard that connects to your Spotify account and displays your top artists, tracks, listening history, genre breakdowns, and visual insights.
 
-**Stack:** Next.js 14 · NextAuth.js · Prisma + SQLite · Tailwind CSS · Recharts
+**Stack:** Next.js 14 · NextAuth.js · Prisma + PostgreSQL · Tailwind CSS · Recharts
 
 ---
 
@@ -18,7 +18,7 @@ spotify-library/
 ├── tailwind.config.js
 ├── tsconfig.json
 ├── prisma/
-│   └── schema.prisma         ← Database schema (SQLite)
+│   └── schema.prisma         ← Database schema (PostgreSQL)
 └── src/
     ├── app/
     │   ├── globals.css        ← Global styles + Tailwind
@@ -108,7 +108,7 @@ NEXTAUTH_URL=http://localhost:3000
 SPOTIFY_CLIENT_ID=paste-your-client-id-here
 SPOTIFY_CLIENT_SECRET=paste-your-client-secret-here
 
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://user:password@localhost:5432/spotify_library?sslmode=require"
 ```
 
 **How to fill each value:**
@@ -119,7 +119,7 @@ DATABASE_URL="file:./dev.db"
 | `NEXTAUTH_URL`         | `http://localhost:3000` (don't change this for local dev)                                        |
 | `SPOTIFY_CLIENT_ID`    | The Client ID from Step 3                                                                        |
 | `SPOTIFY_CLIENT_SECRET`| The Client Secret from Step 3                                                                    |
-| `DATABASE_URL`         | `"file:./dev.db"` (keep exactly as shown — this creates a local SQLite file)                     |
+| `DATABASE_URL`         | Your PostgreSQL connection string (e.g. from [Neon](https://neon.tech): `postgresql://USER:PASSWORD@HOST/DB?sslmode=require`) |
 
 ### Step 5: Install dependencies
 
@@ -138,8 +138,7 @@ and all other dependencies. It may take 1-2 minutes.
 npx prisma db push
 ```
 
-This creates the SQLite database file (`prisma/dev.db`) with the User
-table. You should see "Your database is now in sync with your schema."
+This creates the tables in your PostgreSQL database. You should see "Your database is now in sync with your schema."
 
 ### Step 7: Run the app
 
@@ -235,7 +234,9 @@ The job finds all users with a linked Spotify account, fetches their last 50 rec
 
 ## Deploying to Production (Optional)
 
-To deploy on **Vercel**:
+**First time putting the app online?** See **[DEPLOY.md](./DEPLOY.md)** for a full checklist and step-by-step (Vercel + Neon, env vars, Spotify redirect URI).
+
+To deploy on **Vercel** (short version):
 
 1. Push your code to GitHub
 2. Go to https://vercel.com and import your repo
@@ -246,7 +247,4 @@ To deploy on **Vercel**:
    in your Spotify app settings
 6. Deploy!
 
-For production, consider switching from SQLite to PostgreSQL:
-- Update `prisma/schema.prisma`: change `provider = "sqlite"` to `provider = "postgresql"`
-- Set `DATABASE_URL` to your PostgreSQL connection string
-- Run `npx prisma db push`
+The project uses PostgreSQL. For production (e.g. Vercel), use a hosted Postgres (e.g. [Neon](https://neon.tech)), set `DATABASE_URL` in your host’s env, and run `npx prisma db push` once to create tables.

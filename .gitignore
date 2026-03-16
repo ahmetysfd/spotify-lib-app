@@ -1,7 +1,28 @@
+# Dependencies & build
 node_modules/
 .next/
-.env.local
+
+# ─── SECRETS & ENV (never commit these) ─────────────────────────────────────
 .env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+.env*.local
+!.env.example
+
+# Keys / credentials (backup or accidental copies)
+*.pem
+*.key
+secrets.json
+credentials.json
+.env.backup
+.env.old
+
+# Database (can contain user data)
 *.db
 *.db-journal
 prisma/dev.db
