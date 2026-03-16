@@ -10,7 +10,7 @@ export async function GET() {
     return Response.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const userId = (session.user as { id: string }).id;
+  const userId = (session!.user as { id: string }).id;
   const token = await getSpotifyToken();
 
   const data = await spotifyFetch(

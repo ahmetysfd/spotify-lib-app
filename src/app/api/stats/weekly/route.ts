@@ -9,13 +9,15 @@ export async function GET() {
     return Response.json({ tracks: [], artists: [], album: null });
   }
 
+  const userId = (session!.user as { id: string }).id;
+
   const start = new Date();
   start.setDate(start.getDate() - 7);
   start.setHours(0, 0, 0, 0);
 
   const stats = await prisma.dailyTrackStat.findMany({
     where: {
-      userId: (session.user as { id: string }).id,
+      userId,
       date: { gte: start },
     },
   });

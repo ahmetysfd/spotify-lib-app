@@ -39,7 +39,7 @@ async function runCollector(req: Request) {
     select: { userId: true },
   });
 
-  const userIds = [...new Set(accounts.map((a) => a.userId))];
+  const userIds = Array.from(new Set(accounts.map((a) => a.userId)));
   let processed = 0;
   const errors: string[] = [];
 

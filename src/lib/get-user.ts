@@ -5,9 +5,16 @@ import prisma from "./prisma";
 const SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token";
 
 /**
- * Token refresh lock to prevent multiple parallel refreshes.
+ * Token refresh lock to prevent multiple parallel refreshes
+ * for the current-session helper `getSpotifyToken`.
  */
 const refreshLocks = new Map<string, Promise<string>>();
+
+/**
+ * Separate lock map for the per-user helper `getSpotifyTokenForUserId`,
+ * which can legitimately return null.
+ */
+const perUserRefreshLocks = new Map<string, Promise<string | null>>();
 
 /**
  * Refresh an expired Spotify access token
@@ -137,7 +144,7 @@ export async function getSpotifyTokenForUserId(userId: string): Promise<string |
     return account.access_token;
   }
 
-  const existingLock = refreshLocks.get(userId);
+  const existingLock = perUserRefreshLocks.get(userId);
   if (existingLock) {
     return existingLock;
   }
@@ -161,6 +168,6 @@ export async function getSpotifyTokenForUserId(userId: string): Promise<string |
     }
   })();
 
-  refreshLocks.set(userId, refreshPromise);
+  perUserRefreshLocks.set(userId, refreshPromise);
   return refreshPromise;
 }

@@ -49,7 +49,7 @@ export async function GET(req: Request) {
       agg.minutes += (track.duration_ms || 0) / 60000;
     });
 
-    const albums = [...albumMap.values()].sort((a, b) => {
+    const albums = Array.from(albumMap.values()).sort((a, b) => {
       if (b.trackCount !== a.trackCount) return b.trackCount - a.trackCount;
       return b.minutes - a.minutes;
     });

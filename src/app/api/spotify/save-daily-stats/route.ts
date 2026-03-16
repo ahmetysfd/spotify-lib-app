@@ -6,14 +6,15 @@ import { saveDailyStats } from "@/lib/saveDailyStats";
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const userId = (session?.user as { id?: string } | undefined)?.id;
+    if (!userId) {
       return NextResponse.json({ error: "Not logged in" }, { status: 401 });
     }
 
     const body = await req.json();
     const items = body.items ?? [];
 
-    await saveDailyStats(session.user.id, items);
+    await saveDailyStats(userId, items);
     return NextResponse.json({ ok: true });
   } catch (error: any) {
     console.error("Save daily stats error:", error.message);
