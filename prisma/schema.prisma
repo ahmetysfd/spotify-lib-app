@@ -37,7 +37,7 @@ model Session {
 model User {
   id                  String    @id @default(cuid())
   // Local auth
-  username            String    @unique
+  username            String?   @unique
   hashedPassword      String?
   displayName         String?
 
