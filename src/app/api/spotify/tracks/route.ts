@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSpotifyToken } from "@/lib/get-user";
 import { spotifyFetch } from "@/lib/spotify";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);

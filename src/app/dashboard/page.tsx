@@ -5,6 +5,10 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
+// This page uses client-side hooks like useSearchParams heavily.
+// Force dynamic rendering so Next.js doesn't try to prerender it.
+export const dynamic = "force-dynamic";
+
 // ─── Types ───────────────────────────────────────────────────────────
 interface SpotifyArtist {
   id?: string;

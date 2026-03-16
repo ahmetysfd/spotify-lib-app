@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { exchangeCodeForTokens, spotifyFetch } from "@/lib/spotify";
 import prisma from "@/lib/prisma";
 
+// This route depends on request headers and cannot be prerendered.
+export const dynamic = "force-dynamic";
+
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
