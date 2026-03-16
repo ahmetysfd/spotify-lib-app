@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
@@ -203,7 +203,7 @@ function GenreTooltip({ active, payload }: any) {
 }
 
 // ─── Main Component ──────────────────────────────────────────────────
-export default function DashboardPage() {
+function DashboardPageInner() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -745,5 +745,15 @@ export default function DashboardPage() {
         )}
       </div>
     </>
+  );
+}
+
+// Wrap the dashboard in a Suspense boundary so Next.js
+// is happy with useSearchParams and other client hooks.
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<></>}>
+      <DashboardPageInner />
+    </Suspense>
   );
 }
