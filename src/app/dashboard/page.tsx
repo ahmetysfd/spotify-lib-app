@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 
 // This page uses client-side hooks like useSearchParams heavily.
@@ -206,7 +206,6 @@ function GenreTooltip({ active, payload }: any) {
 function DashboardPageInner() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [timeRange, setTimeRange] = useState<string>("short_term");
   const [loading, setLoading] = useState(true);
@@ -225,9 +224,11 @@ function DashboardPageInner() {
   const [topAlbumImage, setTopAlbumImage] = useState<string>("");
 
   useEffect(() => {
-    const err = searchParams.get("error");
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const err = params.get("error");
     if (err) setError("Something went wrong. Please try again.");
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => { if (status === "unauthenticated") router.push("/login"); }, [status, router]);
 
